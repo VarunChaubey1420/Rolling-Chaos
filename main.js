@@ -57,8 +57,27 @@ scene.add(light);
 ========================= */
 const roadGeometry = new THREE.BoxGeometry(5, 0.1, 50);
 const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-const road = new THREE.Mesh(roadGeometry, roadMaterial);
-scene.add(road);
+const roads = [];
+const roadLength = 50;
+const roadCount = 3;
+for (let i = 0; i < roadCount; i++) {
+  const road = new THREE.Mesh(roadGeometry, roadMaterial);
+  road.position.z = i * -roadLength;
+
+  // 🔥 ROAD LINES (ADD HERE)
+  const lineGeometry = new THREE.BoxGeometry(0.2, 0.05, 5);
+  const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  for (let j = 0; j < 5; j++) {
+    const line = new THREE.Mesh(lineGeometry, lineMaterial);
+    line.position.z = j * -10;
+    line.position.y = 0.06; // slightly above road
+    road.add(line);
+  }
+
+  scene.add(road);
+  roads.push(road);
+}
 
 /* =========================
    PLAYER (Temporary Cube)
@@ -106,12 +125,14 @@ function animate() {
   player.position.x = Math.max(-2, Math.min(2, player.position.x));
 
   /* ----- FORWARD MOTION ----- */
-  road.position.z += speed;
-
-  // Loop road
-  if (road.position.z > 25) {
-    road.position.z = 0;
-  }
+  // Move all road tiles
+  roads.forEach((road) => {
+    road.position.z += speed;
+    // If tile goes behind camera → recycle it forward
+    if (road.position.z > roadLength) {
+      road.position.z -= roadLength * roadCount;
+    }
+  });
 
   /* ----- BRAKE SYSTEM ----- */
   if (keys.brake) {
