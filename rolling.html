@@ -2,27 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rolling Chaos</title>
-  <link rel="stylesheet" href="style.css">
+
+  <link rel="stylesheet" href="mainstyle.css">
 </head>
+
 <body>
-  <div id="startScreen">
-    <div class="overlay"></div>
 
-    <div class="menu">
-      <h1>ROLLING CHAOS</h1>
-      <p class="tagline">Drive. Drift. Survive.</p>
+  <!-- GAME -->
+  <div id="gameContainer"></div>
 
-      <button id="startBtn">START GAME</button>
+  <!-- UI LAYER (NEW) -->
+  <div id="uiLayer">
+    <div id="startScreen">
+      <div class="overlay"></div>
 
-      <p class="hint">Press ENTER or Click</p>
-    </div>  
+      <div class="menu">
+        <h1>ROLLING CHAOS</h1>
+        <p class="tagline">Drive. Drift. Survive.</p>
+
+        <button id="startBtn">START GAME</button>
+      </div>
+    </div>
   </div>
-  <div id="ui">
-    <div id="score">0</div>
-  </div>
+
   <script type="module" src="main.js"></script>
-</body>
+
 </body>
 </html>

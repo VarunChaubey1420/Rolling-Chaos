@@ -1,0 +1,94 @@
+/* RESET (must be first) */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: black;
+}
+
+canvas {
+  display: block;
+}
+/* GAME (bottom layer) */
+#gameContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* UI layer (ALWAYS above everything) */
+#uiLayer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999999;
+  pointer-events: auto;
+}
+
+/* Start screen */
+#startScreen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: black;
+}
+
+/* overlay */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: rgba(0, 0, 0, 0.85); /* 🔥 stronger */
+  backdrop-filter: blur(6px);      /* 🔥 premium feel */
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.9),
+    rgba(0,0,0,0.85)
+  );
+}
+
+/* menu */
+.menu {
+  position: relative;
+  color: white;
+  text-align: center;
+  z-index: 2;
+}
+.menu h1 {
+  font-size: 64px;
+  font-weight: bold;
+  text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+
+.tagline {
+  opacity: 0.8;
+  margin-top: 10px;
+}
+#startBtn {
+  margin-top: 30px;
+  padding: 14px 40px;
+  font-size: 18px;
+  border-radius: 10px;
+
+  background: linear-gradient(45deg, #4facfe, #6a11cb);
+  border: none;
+  color: white;
+
+  box-shadow: 0 0 20px rgba(106,17,203,0.5);
+  transition: 0.3s;
+}
+
+#startBtn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(106,17,203,0.8);
+}

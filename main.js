@@ -6,22 +6,25 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158/build/three.mod
 const keys = {
   left: false,
   right: false,
-  brake: false
+  brake: false,
+  accelerate:false
+  
 };
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
   if (e.key === ' ') keys.brake = true;
+  if (e.key === 'ArrowUp' || e.key === 'w')keys.accelerate = true;
 
-  // Start game
-  if (e.key === 'Enter') startGame();
+  
 });
 
 window.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
   if (e.key === ' ') keys.brake = false;
+  if (e.key === 'ArrowUp' || e.key === 'w')keys.accelerate = false;
 });
 // Button click
 document.getElementById("startBtn").addEventListener("click", startGame);
@@ -41,9 +44,21 @@ camera.position.set(0, 3, 6);
 /* =========================
    RENDERER
 ========================= */
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+// 🔥 CRITICAL FIX
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+
+// Force fullscreen
+renderer.domElement.style.position = "fixed";
+renderer.domElement.style.top = "0";
+renderer.domElement.style.left = "0";
+renderer.domElement.style.width = "100vw";
+renderer.domElement.style.height = "100vh";
+renderer.domElement.style.zIndex = "-1";
+
+document.getElementById("gameContainer").appendChild(renderer.domElement);
 
 /* =========================
    LIGHTING
@@ -51,6 +66,16 @@ document.body.appendChild(renderer.domElement);
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 7);
 scene.add(light);
+function resizeRenderer() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+}
+
+window.addEventListener("resize", resizeRenderer); 
 
 /* =========================
    ROAD SYSTEM
@@ -104,20 +129,19 @@ let velocityX = 0;
 let maxVelocity = 0.2;
 let friction = 0.9;
 
-let score = 0;
-let scoreSpeed = 10;
 
 let isGameStarted = false;
 
 /* =========================
    UI
 ========================= */
-const scoreEl = document.getElementById("score");
 const startScreen = document.getElementById("startScreen");
 
 function startGame() {
+  if (isGameStarted) return; // prevent double trigger
+
   isGameStarted = true;
-  startScreen.style.display = "none";
+
   startScreen.style.transition = "opacity 0.5s";
   startScreen.style.opacity = "0";
 
@@ -164,9 +188,6 @@ function animate() {
       }
     });
 
-    /* SCORE */
-    score += speed * scoreSpeed;
-    scoreEl.innerText = Math.floor(score);
   }
 
   /* CAMERA */
