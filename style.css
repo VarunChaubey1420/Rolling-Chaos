@@ -1,0 +1,46 @@
+#ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  font-family: 'Arial', sans-serif;
+  color: white;
+}
+
+/* Score (top-left) */
+#score {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  background: rgba(0,0,0,0.4);
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+/* Game Over Center */
+#gameOver {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: none;
+}
+
+#gameOver h1 {
+  font-size: 48px;
+  margin: 0;
+  color: red;
+}
+
+#gameOver p {
+  font-size: 20px;
+  margin-top: 10px;
+}
+
+#id{
+    display: none;
+}
