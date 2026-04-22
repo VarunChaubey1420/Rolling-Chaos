@@ -14,10 +14,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
   if (e.key === ' ') keys.brake = true;
 
-  // Restart
-  if ((e.key === 'r' || e.key === 'R') && isGameOver) {
-    restartGame();
-  }
+  // Start game
+  if (e.key === 'Enter') startGame();
 });
 
 window.addEventListener('keyup', (e) => {
@@ -25,6 +23,8 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
   if (e.key === ' ') keys.brake = false;
 });
+// Button click
+document.getElementById("startBtn").addEventListener("click", startGame);
 
 /* =========================
    SCENE SETUP
@@ -89,14 +89,14 @@ const player = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: 0xff0000 })
 );
 player.position.y = 0.6;
-player.position.z = 0;
 scene.add(player);
 
 /* =========================
    GAME VARIABLES
 ========================= */
-let baseSpeed = 0.15;
-let speed = baseSpeed;
+let speed = 0;
+let acceleration = 0.002;
+let maxSpeed = 0.2;
 let brakePower = 0.05;
 
 let turnSpeed = 0.02;
@@ -104,55 +104,26 @@ let velocityX = 0;
 let maxVelocity = 0.2;
 let friction = 0.9;
 
-let isGameOver = false;
-
 let score = 0;
 let scoreSpeed = 10;
+
+let isGameStarted = false;
 
 /* =========================
    UI
 ========================= */
 const scoreEl = document.getElementById("score");
-const gameOverEl = document.getElementById("gameOver");
-gameOverEl.style.display = "none";
+const startScreen = document.getElementById("startScreen");
 
-/* =========================
-   OBSTACLES
-========================= */
-const obstacles = [];
-let spawnTimer = 0;
-let spawnInterval = 100;
+function startGame() {
+  isGameStarted = true;
+  startScreen.style.display = "none";
+  startScreen.style.transition = "opacity 0.5s";
+  startScreen.style.opacity = "0";
 
-function spawnObstacle() {
-  const obs = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0x0000ff })
-  );
-
-  obs.position.x = (Math.random() * 4) - 2;
-  obs.position.y = 0.5;
-  obs.position.z = -60;
-
-  scene.add(obs);
-  obstacles.push(obs);
-}
-
-/* =========================
-   RESTART
-========================= */
-function restartGame() {
-  isGameOver = false;
-  speed = baseSpeed;
-  velocityX = 0;
-  score = 0;
-
-  player.position.x = 0;
-  player.material.color.set(0xff0000);
-
-  obstacles.forEach((obs) => scene.remove(obs));
-  obstacles.length = 0;
-
-  gameOverEl.style.display = "none";
+  setTimeout(() => {
+    startScreen.style.display = "none";
+  }, 500);
 }
 
 /* =========================
@@ -161,9 +132,9 @@ function restartGame() {
 function animate() {
   requestAnimationFrame(animate);
 
-  if (!isGameOver) {
+  if (isGameStarted) {
 
-    /* ----- MOVEMENT ----- */
+    /* MOVEMENT */
     if (keys.left) velocityX -= turnSpeed;
     if (keys.right) velocityX += turnSpeed;
 
@@ -173,7 +144,19 @@ function animate() {
 
     player.position.x = Math.max(-2, Math.min(2, player.position.x));
 
-    /* ----- ROAD ----- */
+    /* ROTATION */
+    player.rotation.y = -velocityX * 2;
+
+    /* SPEED */
+    if (!keys.brake) {
+      speed += acceleration;
+    } else {
+      speed -= brakePower;
+    }
+
+    speed = Math.max(0.05, Math.min(maxSpeed, speed));
+
+    /* ROAD */
     roads.forEach((road) => {
       road.position.z += speed;
       if (road.position.z > roadLength) {
@@ -181,59 +164,18 @@ function animate() {
       }
     });
 
-    /* ----- BRAKE ----- */
-    if (keys.brake) {
-      speed -= brakePower;
-      player.material.color.set(0xffff00);
-    } else {
-      speed += 0.01;
-      player.material.color.set(0xff0000);
-    }
-
-    speed = Math.max(0.05, Math.min(baseSpeed, speed));
-
-    /* ----- SPAWN ----- */
-    spawnTimer++;
-    if (spawnTimer > spawnInterval) {
-      spawnObstacle();
-      spawnTimer = 0;
-    }
-
-    /* ----- OBSTACLES ----- */
-    obstacles.forEach((obs, index) => {
-      obs.position.z += speed;
-
-      if (obs.position.z > 10) {
-        scene.remove(obs);
-        obstacles.splice(index, 1);
-      }
-    });
-
-    /* ----- COLLISION ----- */
-    const playerBox = new THREE.Box3().setFromObject(player);
-
-    obstacles.forEach((obs) => {
-      const obsBox = new THREE.Box3().setFromObject(obs);
-
-      if (playerBox.intersectsBox(obsBox)) {
-        isGameOver = true;
-        player.material.color.set(0x000000);
-        gameOverEl.style.display = "block";
-      }
-    });
-
-    /* ----- SCORE ----- */
+    /* SCORE */
     score += speed * scoreSpeed;
+    scoreEl.innerText = Math.floor(score);
   }
 
-  /* ----- CAMERA ----- */
+  /* CAMERA */
   camera.position.x += (player.position.x - camera.position.x) * 0.1;
-  camera.position.z = 6 + velocityX * 5;
+  camera.rotation.z = -velocityX * 0.3;
+  camera.position.z = 6 + Math.abs(velocityX) * 3;
   camera.lookAt(player.position);
 
   renderer.render(scene, camera);
-
-  scoreEl.innerText = Math.floor(score);
 }
 
 animate();
