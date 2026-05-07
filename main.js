@@ -7,8 +7,8 @@ const keys = {
   left: false,
   right: false,
   brake: false,
-  accelerate:false
-  
+  accelerate:false,
+  boost: false
 };
 
 window.addEventListener('keydown', (e) => {
@@ -16,8 +16,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'd') keys.right = true;
   if (e.code === 'Space') keys.brake = true;
   if (e.key === 'w')keys.accelerate = true;
-
-  
+  if (e.code === 'ShiftLeft') keys.boost = true;
 });
 
 window.addEventListener('keyup', (e) => {
@@ -25,7 +24,9 @@ window.addEventListener('keyup', (e) => {
   if (e.key === 'd') keys.right = false;
   if (e.code === 'Space') keys.brake = false;
   if (e.key === 'w')keys.accelerate = false;
+  if (e.code === 'ShiftLeft') keys.boost = false;
 });
+
 // Button click
 document.getElementById("startBtn").addEventListener("click", startGame);
 
@@ -57,7 +58,6 @@ renderer.domElement.style.left = "0";
 renderer.domElement.style.width = "100vw";
 renderer.domElement.style.height = "100vh";
 renderer.domElement.style.zIndex = "-1";
-
 document.getElementById("gameContainer").appendChild(renderer.domElement);
 
 /* =========================
@@ -74,7 +74,6 @@ function resizeRenderer() {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 }
-
 window.addEventListener("resize", resizeRenderer); 
 
 /* =========================
@@ -82,11 +81,9 @@ window.addEventListener("resize", resizeRenderer);
 ========================= */
 const roadGeometry = new THREE.BoxGeometry(5, 0.1, 50);
 const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-
 const roads = [];
 const roadLength = 50;
 const roadCount = 3;
-
 for (let i = 0; i < roadCount; i++) {
   const road = new THREE.Mesh(roadGeometry, roadMaterial);
   road.position.z = i * -roadLength;
@@ -94,14 +91,12 @@ for (let i = 0; i < roadCount; i++) {
   // Road lines
   const lineGeometry = new THREE.BoxGeometry(0.2, 0.05, 5);
   const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
   for (let j = 0; j < 5; j++) {
     const line = new THREE.Mesh(lineGeometry, lineMaterial);
     line.position.z = j * -10;
     line.position.y = 0.06;
     road.add(line);
   }
-
   scene.add(road);
   roads.push(road);
 }
@@ -132,20 +127,20 @@ let isGameStarted = false;
 let grip = 0.92;          // normal grip
 let driftGrip = 0.85;     // lower grip while drifting
 let isDrifting = false;
+let boostMeter = 0;
+let maxBoost = 100;
+let isBoosting = false;
+let boostPower = 0.008;
 
 /* =========================
    UI
 ========================= */
 const startScreen = document.getElementById("startScreen");
-
 function startGame() {
   if (isGameStarted) return; // prevent double trigger
-
   isGameStarted = true;
-
   startScreen.style.transition = "opacity 0.5s";
   startScreen.style.opacity = "0";
-
   setTimeout(() => {
     startScreen.style.display = "none";
   }, 500);
@@ -156,13 +151,12 @@ function startGame() {
 ========================= */
 function animate() {
   requestAnimationFrame(animate);
-
   if (isGameStarted) {
-
     isDrifting = speed > 0.1 && keys.brake && (
       (keys.left && velocityX <= 0) || 
       (keys.right && velocityX >= 0)
     );
+
     // 🚗 Steering only works when moving
     if (speed > 0.01) {
 
@@ -171,15 +165,12 @@ function animate() {
 
       // combine input into one value
       let steerInput = 0;
-
       if (keys.left) steerInput -= 1;
       if (keys.right) steerInput += 1;
       if (speed > 0.01) {
         const steerFactor = speed / maxSpeed;
-
         velocityX += steerInput * turnSpeed * steerFactor;
       }
-
       if (!keys.left && !keys.right) {
         velocityX *= 0.95;
       }
@@ -202,14 +193,38 @@ function animate() {
       }
       velocityX += (keys.right ? 0.002 : 0);
       velocityX -= (keys.left ? 0.002 : 0);
+      boostMeter += 0.5;
     } else {
       velocityX *= 0.94;
     }
+    let boostedMaxSpeed = isBoosting ? 0.7 : maxSpeed;
+    speed = Math.max(0, Math.min(boostedMaxSpeed, speed));
+
     // stop completely when speed is zero
     if (speed < 0.01) {
       velocityX = 0;
     }
     if (Math.abs(velocityX) < 0.0001) velocityX = 0;
+
+    // 🚀 MANUAL BOOST
+    if (keys.boost && boostMeter > 0) {
+      isBoosting = true;
+      speed += boostPower;
+      boostMeter -= 1.5;
+    } else {
+      isBoosting = false;
+    }
+
+    // 🚀 BOOST
+    if (isBoosting) {
+      speed += boostPower;
+      boostMeter -= 2;
+      // stop boost when empty
+      if (boostMeter <= 0) {
+        boostMeter = 0;
+        isBoosting = false;
+      }
+    }
 
     // 🚧 BOUNDARY FIX (IMPORTANT)
     if (player.position.x <= -2 || player.position.x >= 2) {
@@ -225,9 +240,9 @@ function animate() {
       // 🔥 slight curve (less boost at high speed)
       speed -= speed * 0.01;
     }
+
     // 🛑 BRAKE (strong but smooth)
     if (keys.brake) {
-
       if (keys.left || keys.right) {
         // 🔥 drifting → less braking, more sliding
         speed -= brakePower * 0.5;
@@ -235,8 +250,8 @@ function animate() {
         // normal braking
         speed -= brakePower + speed * 0.03;
       }
-
 }
+
     // 🧊 NATURAL SLOWDOWN
     if (!keys.accelerate && !keys.brake) {
       speed *= naturalFriction;
@@ -258,10 +273,8 @@ function animate() {
   /* CAMERA */
   camera.position.x += (player.position.x - camera.position.x) * 0.1;
   camera.rotation.z = -velocityX * 0.3;
-  camera.position.z = 6 + Math.abs(velocityX) * 3;
   camera.position.z = 6 + Math.abs(velocityX) * 3 - speed * 2;
   camera.lookAt(player.position);
-
   renderer.render(scene, camera);
   
 }
