@@ -92,3 +92,39 @@ canvas {
   transform: scale(1.05);
   box-shadow: 0 0 30px rgba(106,17,203,0.8);
 }
+
+/* BOOST CONTAINER */
+#boostContainer {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 300px;
+  height: 18px;
+
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+
+  background: rgba(0,0,0,0.4);
+
+  overflow: hidden;
+
+  z-index: 9999;
+}
+
+/* BOOST BAR */
+#boostBar {
+  width: 0%;
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    #ffff00,
+    #ffe100
+  );
+
+  border-radius: 20px;
+
+  transition: width 0.1s linear;
+}

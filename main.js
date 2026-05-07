@@ -35,6 +35,7 @@ document.getElementById("startBtn").addEventListener("click", startGame);
 ========================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 10, 60);
 
 /* =========================
    CAMERA
@@ -79,8 +80,12 @@ window.addEventListener("resize", resizeRenderer);
 /* =========================
    ROAD SYSTEM
 ========================= */
-const roadGeometry = new THREE.BoxGeometry(5, 0.1, 50);
-const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+// 🛣️ Main road
+const roadGeometry = new THREE.BoxGeometry(8, 0.1, 50);
+const roadMaterial = new THREE.MeshStandardMaterial({
+  color: 0x2b2b2b
+});
 const roads = [];
 const roadLength = 50;
 const roadCount = 3;
@@ -88,27 +93,120 @@ for (let i = 0; i < roadCount; i++) {
   const road = new THREE.Mesh(roadGeometry, roadMaterial);
   road.position.z = i * -roadLength;
 
-  // Road lines
-  const lineGeometry = new THREE.BoxGeometry(0.2, 0.05, 5);
-  const lineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  for (let j = 0; j < 5; j++) {
+  /* =========================
+     ROAD LANE LINES
+  ========================= */
+  const lineGeometry = new THREE.BoxGeometry(0.15, 0.02, 4);
+  const lineMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff
+  });
+  for (let j = 0; j < 6; j++) {
     const line = new THREE.Mesh(lineGeometry, lineMaterial);
-    line.position.z = j * -10;
+    line.position.z = j * -8;
     line.position.y = 0.06;
     road.add(line);
   }
+
+  /* =========================
+     ROAD BORDERS
+  ========================= */
+
+  const borderGeometry = new THREE.BoxGeometry(0.3, 0.12, 50);
+
+  const borderMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff2222
+  });
+
+  // LEFT BORDER
+  const leftBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+  leftBorder.position.x = -4.1;
+
+  // RIGHT BORDER
+  const rightBorder = new THREE.Mesh(borderGeometry, borderMaterial);
+  rightBorder.position.x = 4.1;
+
+  road.add(leftBorder);
+  road.add(rightBorder);
+
+  /* =========================
+     ADD ROAD TO SCENE
+  ========================= */
+
   scene.add(road);
   roads.push(road);
 }
 
 /* =========================
-   PLAYER
+   PLAYER (ARCADE STYLE)
 ========================= */
-const player = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 2),
-  new THREE.MeshStandardMaterial({ color: 0xff0000 })
+
+const player = new THREE.Group();
+
+/* ----- MAIN BODY ----- */
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(1.2, 0.5, 2),
+  new THREE.MeshStandardMaterial({
+    color: 0x0066ff
+  })
 );
-player.position.y = 0.6;
+
+body.position.y = 0.6;
+player.add(body);
+
+/* ----- REAR BOOST PANEL ----- */
+const rear = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 0.3, 0.3),
+  new THREE.MeshStandardMaterial({
+    color: 0x00ccff,
+    emissive: 0x001122
+  })
+);
+
+rear.position.set(0, 0.6, -1);
+
+player.add(rear);
+
+/* ----- BIG SIDE WHEELS ----- */
+const wheelGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.25, 32);
+
+const wheelMaterial = new THREE.MeshStandardMaterial({
+  color: 0x111111
+});
+
+// LEFT
+const leftWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+leftWheel.rotation.z = Math.PI / 2;
+leftWheel.position.set(-0.9, 0.5, 0);
+
+player.add(leftWheel);
+
+// RIGHT
+const rightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+rightWheel.rotation.z = Math.PI / 2;
+rightWheel.position.set(0.9, 0.5, 0);
+
+player.add(rightWheel);
+
+/* ----- FRONT MINI WHEELS ----- */
+const smallWheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+
+// LEFT FRONT
+const frontLeft = new THREE.Mesh(smallWheelGeometry, wheelMaterial);
+frontLeft.rotation.z = Math.PI / 2;
+frontLeft.position.set(-0.4, 0.2, 0.8);
+
+player.add(frontLeft);
+
+// RIGHT FRONT
+const frontRight = new THREE.Mesh(smallWheelGeometry, wheelMaterial);
+frontRight.rotation.z = Math.PI / 2;
+frontRight.position.set(0.4, 0.2, 0.8);
+
+player.add(frontRight);
+
+/* ----- POSITION ----- */
+player.position.y = 0.2;
+
 scene.add(player);
 
 /* =========================
@@ -131,6 +229,7 @@ let boostMeter = 0;
 let maxBoost = 100;
 let isBoosting = false;
 let boostPower = 0.008;
+let targetCameraZ = 6;
 
 /* =========================
    UI
@@ -145,7 +244,7 @@ function startGame() {
     startScreen.style.display = "none";
   }, 500);
 }
-
+const boostBar = document.getElementById("boostBar");
 /* =========================
    GAME LOOP
 ========================= */
@@ -193,7 +292,7 @@ function animate() {
       }
       velocityX += (keys.right ? 0.002 : 0);
       velocityX -= (keys.left ? 0.002 : 0);
-      boostMeter += 0.5;
+      boostMeter += 0.7;
     } else {
       velocityX *= 0.94;
     }
@@ -210,7 +309,7 @@ function animate() {
     if (keys.boost && boostMeter > 0) {
       isBoosting = true;
       speed += boostPower;
-      boostMeter -= 1.5;
+      boostMeter -= 0.2;
     } else {
       isBoosting = false;
     }
@@ -219,19 +318,24 @@ function animate() {
     if (isBoosting) {
       speed += boostPower;
       boostMeter -= 2;
+      boostBar.style.boxShadow = "0 0 20px #ffe600";
       // stop boost when empty
       if (boostMeter <= 0) {
         boostMeter = 0;
         isBoosting = false;
       }
+    } else {
+      boostBar.style.boxShadow = "none";
     }
+    // ⚡ Update boost UI
+    boostBar.style.width = `${(boostMeter / maxBoost) * 100}%`;
 
     // 🚧 BOUNDARY FIX (IMPORTANT)
-    if (player.position.x <= -2 || player.position.x >= 2) {
+    if (player.position.x <= -3.5 || player.position.x >= 3.5) {
       velocityX *= 0.5; // dampen instead of killing direction
     }
     // boundary
-    player.position.x = Math.max(-2, Math.min(2, player.position.x));
+    player.position.x = Math.max(-3.5, Math.min(3.5, player.position.x));
     player.rotation.y = -velocityX * (isDrifting ? 5 : 2);
 
     // 🚗 ACCELERATION
@@ -250,8 +354,8 @@ function animate() {
         // normal braking
         speed -= brakePower + speed * 0.03;
       }
-}
-
+    }
+    
     // 🧊 NATURAL SLOWDOWN
     if (!keys.accelerate && !keys.brake) {
       speed *= naturalFriction;
@@ -266,6 +370,7 @@ function animate() {
       if (road.position.z > roadLength) {
         road.position.z -= roadLength * roadCount;
       }
+      road.rotation.z = velocityX * -0.08;
     });
 
   }
@@ -273,7 +378,13 @@ function animate() {
   /* CAMERA */
   camera.position.x += (player.position.x - camera.position.x) * 0.1;
   camera.rotation.z = -velocityX * 0.3;
-  camera.position.z = 6 + Math.abs(velocityX) * 3 - speed * 2;
+  // 🎥 Dynamic target camera distance
+  targetCameraZ = 6 + Math.abs(velocityX) * 3 - speed * (isBoosting ? 5 : 2);
+  // 🔥 Smooth transition
+  camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
+  let targetFOV = isBoosting ? 85 : 75;
+  camera.fov += (targetFOV - camera.fov) * 0.08;
+  camera.updateProjectionMatrix();
   camera.lookAt(player.position);
   renderer.render(scene, camera);
   
